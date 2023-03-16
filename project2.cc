@@ -6,13 +6,82 @@
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
+#include <vector>
 #include "lexer.h"
 
 using namespace std;
+LexicalAnalyzer lexer = LexicalAnalyzer();
+
+
+struct ruleSet {
+    string left;
+    vector<string> right;
+    vector<string> terminal;
+    vector<string> nont;
+};
+
+vector<ruleSet> grammar;
+
+void syntax_error() {
+    cout << "syntax error";
+}
+
+void parse_right(ruleSet *curr_rule) {
+    vector<string> out;
+    while (lexer.peek(1).token_type != STAR) {
+        Token test = lexer.GetToken();
+        if (test.token_type != ID) {
+            syntax_error();
+            return;
+        }
+        else{
+            curr_rule->right.push_back(test.lexeme);
+        }
+    }
+}
+
 
 // read grammar
 void ReadGrammar()
 {
+    bool isid;
+    Token curr_token = lexer.GetToken();
+    while(curr_token.token_type!=HASH&&curr_token.token_type!=END_OF_FILE){
+        if (curr_token.token_type == ID) {
+            //add non terminal to the data structure
+            curr_token = lexer.GetToken();
+            if (curr_token.token_type == ARROW) {
+                parse_right();
+                if (curr_token.token_type == STAR) {
+
+                }
+                else {
+                    syntax_error();
+                    return;
+                }
+            }
+            else {
+                syntax_error();
+                return;
+            }
+        }
+        else {
+            syntax_error();
+            return;
+        }
+        curr_token = lexer.GetToken();
+    }
+    if (curr_token.token_type == END_OF_FILE) {
+        syntax_error();
+        return;
+    }
+    curr_token = lexer.GetToken();
+    if(curr_token.token_type!=END_OF_FILE){
+        syntax_error();
+    }
+
+
+
     cout << "0\n";
 }
 
@@ -90,4 +159,5 @@ int main (int argc, char* argv[])
     }
     return 0;
 }
+
 
