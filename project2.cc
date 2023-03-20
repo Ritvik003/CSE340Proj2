@@ -24,8 +24,33 @@ struct ruleSet {
 vector<ruleSet> grammar;
 vector<string> print_t;
 vector<string> print_nt;
-std::set<string> set;
-
+std::set<string> setforsomething;
+bool inLeft (string lexeme,vector<ruleSet> grammarRule){
+    for(int i=0;i<grammarRule.size();i++){
+        for(int j=0;j<grammarRule[i].left.size();j++){
+            if(lexeme.compare(grammarRule[i].left)==0){
+                return true;
+            }
+        }
+    }
+    return false;
+}
+void addToTerminals(string lexeme){
+    for(int i =0; i<print_t.size();i++){
+        if(lexeme.compare(print_t[i])==0){
+            return;
+        }
+    }
+    print_t.push_back(lexeme);
+}
+void addToNonTerminals(string lexeme){
+    for(int i =0; i<print_nt.size();i++){
+        if(lexeme.compare(print_nt[i])==0){
+            return;
+        }
+    }
+    print_nt.push_back(lexeme);
+}
 void syntax_error() {
     cout << "syntax error";
 }
@@ -64,7 +89,7 @@ void ReadGrammar()
                 parse_right(rule);
                 if (curr_token.token_type == STAR) {
                     //this verifies the grammar is correct, so add it to the set
-                    set.insert(maybe_add_id);
+                    //set.insert(maybe_add_id);
                     grammar.push_back(*rule);
                     curr_token = lexer.GetToken(); //go to the next line
                 }
@@ -101,18 +126,27 @@ void ReadGrammar()
 // Task 1
 void printTerminalsAndNoneTerminals()
 {
+    cout << "1\n";
     ReadGrammar();
-    //print non-terminals
+    // parses throght all lefts and rights to determine the terminals and non terminals
     for (int i = 0; i < grammar.size(); i++) {
-        cout << grammar[i].left;
-    }
-    //print terminals
-    for (int i = 0; i < grammar.size(); i++) {
-        for (int j = 0; j < grammar[i].left.size(); j++) {
-            cout << grammar[i].left[j] + "\n";
+        addToNonTerminals(grammar[i].left);
+        for (int j = 0; j < grammar[i].right.size(); j++) {
+            if(inLeft(grammar[i].right[j],grammar)){
+                addToNonTerminals(grammar[i].right[j]);
+            }
+            else{
+                addToTerminals(grammar[i].right[j]);
+            }
         }
     }
-    cout << "1\n";
+    for(int i =0; i<print_t.size();i++){
+        cout<<print_t[i]<<" ";
+    }
+    for(int i =0; i<print_nt.size();i++){
+        cout<<print_nt[i]<<" ";
+    } 
+    cout<<endl;
 }
 
 // Task 2
@@ -182,5 +216,3 @@ int main (int argc, char* argv[])
     }
     return 0;
 }
-
-
