@@ -27,10 +27,8 @@ vector<string> print_nt;
 std::set<string> setforsomething;
 bool inLeft (string lexeme,vector<ruleSet> grammarRule){
     for(int i=0;i<grammarRule.size();i++){
-        for(int j=0;j<grammarRule[i].left.size();j++){
             if(lexeme.compare(grammarRule[i].left)==0){
                 return true;
-            }
         }
     }
     return false;
@@ -49,6 +47,7 @@ void addToNonTerminals(string lexeme){
             return;
         }
     }
+
     print_nt.push_back(lexeme);
 }
 void syntax_error() {
@@ -81,26 +80,28 @@ void ReadGrammar()
         ruleSet *rule = new ruleSet; //check if this should be here
         if (curr_token.token_type == ID) {
             //add non terminal to the data structure
-            rule->left = curr_token.token_type;
+            rule->left = curr_token.lexeme;
             //if the grammar isn't a syntax error, then store the id in a variable.
-            maybe_add_id = curr_token.token_type;
             curr_token = lexer.GetToken();
             if (curr_token.token_type == ARROW) {
                 parse_right(rule);
+                curr_token = lexer.GetToken();
                 if (curr_token.token_type == STAR) {
                     //this verifies the grammar is correct, so add it to the set
                     //set.insert(maybe_add_id);
                     grammar.push_back(*rule);
-                    curr_token = lexer.GetToken(); //go to the next line
+                    //curr_token = lexer.GetToken(); //go to the next line
                 }
                 else {
                     delete rule;
+                    cout<<"here1\n";
                     syntax_error();
                     return;
                 }
             }
             else {
                 delete rule;
+                cout<<"here2\n";
                 syntax_error();
                 return;
             }
@@ -110,25 +111,39 @@ void ReadGrammar()
             return;
         }
         curr_token = lexer.GetToken();
+       // cout<<"checking exiting token\n";
+        //curr_token.Print();
     }
+    //cout<<"checking token\n";
+    //curr_token.Print();
     if (curr_token.token_type == END_OF_FILE) {
         syntax_error();
+        cout<<"\nhere3\n";
         return;
     }
+    if(curr_token.token_type==HASH){
     curr_token = lexer.GetToken();
     if(curr_token.token_type!=END_OF_FILE){
         syntax_error();
     }
+    }
 
-    cout << "0\n";
 }
 
 // Task 1
 void printTerminalsAndNoneTerminals()
 {
-    cout << "1\n";
-    ReadGrammar();
+    //ReadGrammar();
     // parses throght all lefts and rights to determine the terminals and non terminals
+    /*
+    for (int i =0; i<grammar.size();i++){
+        cout<< grammar[i].left<<"->";
+        for(int j=0;j<grammar[i].right.size();j++){
+            cout<<grammar[i].right[j]<<", ";
+        }
+        cout<<endl;
+    }
+    */
     for (int i = 0; i < grammar.size(); i++) {
         addToNonTerminals(grammar[i].left);
         for (int j = 0; j < grammar[i].right.size(); j++) {
@@ -147,6 +162,7 @@ void printTerminalsAndNoneTerminals()
         cout<<print_nt[i]<<" ";
     } 
     cout<<endl;
+    
 }
 
 // Task 2
