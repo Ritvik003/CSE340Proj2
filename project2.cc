@@ -53,7 +53,19 @@ void addToNonTerminals(string lexeme){
 void syntax_error() {
     cout << "syntax error";
 }
-
+void findTerminals_nonTerminals(){
+        for (int i = 0; i < grammar.size(); i++) {
+        addToNonTerminals(grammar[i].left);
+        for (int j = 0; j < grammar[i].right.size(); j++) {
+            if(inLeft(grammar[i].right[j],grammar)){
+                addToNonTerminals(grammar[i].right[j]);
+            }
+            else{
+                addToTerminals(grammar[i].right[j]);
+            }
+        }
+    }
+}
 void parse_right(ruleSet *curr_rule) {
     vector<string> out;
     while (lexer.peek(1).token_type != STAR) {
@@ -144,17 +156,7 @@ void printTerminalsAndNoneTerminals()
         cout<<endl;
     }
     */
-    for (int i = 0; i < grammar.size(); i++) {
-        addToNonTerminals(grammar[i].left);
-        for (int j = 0; j < grammar[i].right.size(); j++) {
-            if(inLeft(grammar[i].right[j],grammar)){
-                addToNonTerminals(grammar[i].right[j]);
-            }
-            else{
-                addToTerminals(grammar[i].right[j]);
-            }
-        }
-    }
+    findTerminals_nonTerminals();
     for(int i =0; i<print_t.size();i++){
         cout<<print_t[i]<<" ";
     }
