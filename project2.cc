@@ -66,6 +66,7 @@ void findTerminals_nonTerminals(){
         }
     }
 }
+
 void parse_right(ruleSet *curr_rule) {
     vector<string> out;
     while (lexer.peek(1).token_type != STAR) {
@@ -147,15 +148,6 @@ void printTerminalsAndNoneTerminals()
 {
     //ReadGrammar();
     // parses throght all lefts and rights to determine the terminals and non terminals
-    /*
-    for (int i =0; i<grammar.size();i++){
-        cout<< grammar[i].left<<"->";
-        for(int j=0;j<grammar[i].right.size();j++){
-            cout<<grammar[i].right[j]<<", ";
-        }
-        cout<<endl;
-    }
-    */
     findTerminals_nonTerminals();
     for(int i =0; i<print_t.size();i++){
         cout<<print_t[i]<<" ";
@@ -166,11 +158,12 @@ void printTerminalsAndNoneTerminals()
     cout<<endl;
     
 }
-
+vector<ruleSet> condensedGrammar;
 // Task 2
 void RemoveUselessSymbols()
 {
-    cout << "2\n";
+    findTerminals_nonTerminals();
+
 }
 
 // Task 3
