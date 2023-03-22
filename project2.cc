@@ -19,6 +19,8 @@ struct ruleSet {
     vector<string> right;
     vector<string> terminal;
     vector<string> nont;
+    bool reachable;
+    bool generating;
 };
 
 vector<ruleSet> grammar;
@@ -67,6 +69,7 @@ void findTerminals_nonTerminals(){
     }
 }
 
+
 void parse_right(ruleSet *curr_rule) {
     vector<string> out;
     while (lexer.peek(1).token_type != STAR) {
@@ -94,6 +97,8 @@ void ReadGrammar()
         if (curr_token.token_type == ID) {
             //add non terminal to the data structure
             rule->left = curr_token.lexeme;
+            rule->generating=false;
+            rule->reachable = false;
             //if the grammar isn't a syntax error, then store the id in a variable.
             curr_token = lexer.GetToken();
             if (curr_token.token_type == ARROW) {
@@ -107,14 +112,14 @@ void ReadGrammar()
                 }
                 else {
                     delete rule;
-                    cout<<"here1\n";
+                    //cout<<"here1\n";
                     syntax_error();
                     return;
                 }
             }
             else {
                 delete rule;
-                cout<<"here2\n";
+                //cout<<"here2\n";
                 syntax_error();
                 return;
             }
@@ -158,12 +163,107 @@ void printTerminalsAndNoneTerminals()
     cout<<endl;
     
 }
-vector<ruleSet> condensedGrammar;
-// Task 2
-void RemoveUselessSymbols()
-{
-    findTerminals_nonTerminals();
 
+
+// Task 2
+vector<ruleSet> condensedGrammar;
+int num_generating = 0;
+int num_reachable = 0;
+
+void turnReachable(string lexeme){
+    for (int i=0;i<grammar.size();i++){
+        if(grammar[i].left.compare(lexeme)==0&&!grammar[i].reachable){
+            grammar[i].reachable=true;
+            num_reachable++;
+        }
+    }
+}
+bool isGenerating(string lexeme){
+       for (int i=0;i<grammar.size();i++){
+        if(grammar[i].left.compare(lexeme)==0&&grammar[i].generating==true){
+           return true;
+        }
+    } 
+    return false;
+}
+bool findGenerating(int num){
+    ruleSet mainRule = grammar[num];
+    for(int i =0; i<mainRule.right.size();i++){
+        if(inLeft(mainRule.right[i],grammar)&&!isGenerating(mainRule.right[i])){
+            return false;
+        }
+
+    }
+    return true;
+}
+void getCondensedGrammar(){
+    turnReachable(grammar[0].left);//base grammar is always reachable
+    int prev_reachable = 0;
+    int prev_generating = 0;
+    while(prev_generating!=num_generating||prev_reachable!=num_reachable){
+        //cout<<prev_generating<<" , "<<num_generating<<endl;
+        //cout<<prev_reachable<<" , "<<num_reachable<<endl;
+        prev_generating=num_generating;
+        prev_reachable=num_reachable;
+        
+        for(int i =0; i<grammar.size();i++){
+            if(grammar[i].generating ==false && findGenerating(i)){
+                grammar[i].generating = true;
+                num_generating++;
+            }
+        }    
+        for(int i =0; i<grammar.size();i++){
+            if(grammar[i].reachable ==true){
+                bool status = true;
+                for(int j=0; j<grammar[i].right.size();j++){
+                    if(inLeft(grammar[i].right[j],grammar)&&!isGenerating(grammar[i].right[j])){
+                        status = false;
+                        break;
+                    }
+                }
+                if(status == true){
+                    if(!grammar[i].generating){
+                    grammar[i].generating=true;
+                    num_generating++;
+                    }
+                    for(int j=0; j<grammar[i].right.size();j++){
+                        if(inLeft(grammar[i].right[j],grammar)&&isGenerating(grammar[i].right[j])){
+                            turnReachable(grammar[i].right[j]);
+                        }
+                    }
+             
+                }
+            }
+       }
+       
+    }
+    //adds to condensed grammar
+    
+    for(int i=0;i<grammar.size();i++){
+        if(grammar[i].generating==true&&grammar[i].reachable==true){
+            condensedGrammar.push_back(grammar[i]);
+        }
+    }
+}
+void RemoveUselessSymbols()
+{   
+    //cout<<"2"<<endl;
+    findTerminals_nonTerminals();
+    getCondensedGrammar();
+    
+    for(int i =0; i<condensedGrammar.size();i++){
+        cout<<condensedGrammar[i].left<<" -> ";
+        if(condensedGrammar[i].right.size()==0){
+            cout<<"#";
+        }
+        else{
+            cout<<condensedGrammar[i].right[0];
+        }
+        for(int j=1;j<condensedGrammar[i].right.size();j++){
+            cout<<" "<<condensedGrammar[i].right[j];
+        }
+        cout<<endl;
+    }
 }
 
 // Task 3
