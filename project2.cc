@@ -12,7 +12,6 @@
 
 using namespace std;
 LexicalAnalyzer lexer = LexicalAnalyzer();
-bool syntaxError = false;
 
 struct ruleSet {
     string left;
@@ -35,39 +34,9 @@ bool inLeft (string lexeme,vector<ruleSet> grammarRule){
     }
     return false;
 }
-void addToTerminals(string lexeme){
-    for(int i =0; i<print_t.size();i++){
-        if(lexeme.compare(print_t[i])==0){
-            return;
-        }
-    }
-    print_t.push_back(lexeme);
-}
-void addToNonTerminals(string lexeme){
-    for(int i =0; i<print_nt.size();i++){
-        if(lexeme.compare(print_nt[i])==0){
-            return;
-        }
-    }
 
-    print_nt.push_back(lexeme);
-}
 void syntax_error() {
-    syntaxError = true;
     cout << "SYNTAX ERROR !!!\n";
-}
-void findTerminals_nonTerminals(){
-        for (int i = 0; i < grammar.size(); i++) {
-        addToNonTerminals(grammar[i].left);
-        for (int j = 0; j < grammar[i].right.size(); j++) {
-            if(inLeft(grammar[i].right[j],grammar)){
-                addToNonTerminals(grammar[i].right[j]);
-            }
-            else{
-                addToTerminals(grammar[i].right[j]);
-            }
-        }
-    }
 }
 
 
@@ -94,24 +63,19 @@ void ReadGrammar()
     while(curr_token.token_type!=HASH&&curr_token.token_type!=END_OF_FILE){
         ruleSet *rule = new ruleSet; //check if this should be here
         if (curr_token.token_type == ID) {
-            //add non terminal to the data structure
-            rule->left = curr_token.lexeme;
+            rule->left = curr_token.lexeme;  //add non terminal to the data structure
             rule->generating=false;
             rule->reachable = false;
-            //if the grammar isn't a syntax error, then store the id in a variable.
             curr_token = lexer.GetToken();
             if (curr_token.token_type == ARROW) {
-                //error prone
                 if(parse_right(rule)){
                     syntax_error();
                     return;
                 }
                 curr_token = lexer.GetToken();
                 if (curr_token.token_type == STAR) {
-                    //this verifies the grammar is correct, so add it to the set
-                    //set.insert(maybe_add_id);
+                    //this verifies the grammar is correct, so add it to the vector
                     grammar.push_back(*rule);
-                    //curr_token = lexer.GetToken(); //go to the next line
                 }
                 else {
                     delete rule;
@@ -150,6 +114,37 @@ void ReadGrammar()
 }
 
 // Task 1
+void addToTerminals(string lexeme){
+    for(int i =0; i<print_t.size();i++){
+        if(lexeme.compare(print_t[i])==0){
+            return;
+        }
+    }
+    print_t.push_back(lexeme);
+}
+void addToNonTerminals(string lexeme){
+    for(int i =0; i<print_nt.size();i++){
+        if(lexeme.compare(print_nt[i])==0){
+            return;
+        }
+    }
+
+    print_nt.push_back(lexeme);
+}
+void findTerminals_nonTerminals(){
+        for (int i = 0; i < grammar.size(); i++) {
+        addToNonTerminals(grammar[i].left);
+        for (int j = 0; j < grammar[i].right.size(); j++) {
+            if(inLeft(grammar[i].right[j],grammar)){
+                addToNonTerminals(grammar[i].right[j]);
+            }
+            else{
+                addToTerminals(grammar[i].right[j]);
+            }
+        }
+    }
+}
+
 void printTerminalsAndNoneTerminals()
 {
     //ReadGrammar();
@@ -305,7 +300,6 @@ int main (int argc, char* argv[])
     ReadGrammar();  // Reads the input grammar from standard input
                     // and represent it internally in data structures
                     // ad described in project 2 presentation file
-    if(syntaxError==false){
 
     switch (task) {
         case 1: printTerminalsAndNoneTerminals();
@@ -327,6 +321,6 @@ int main (int argc, char* argv[])
             cout << "Error: unrecognized task number " << task << "\n";
             break;
     }
-    }
+    
     return 0;
 }
