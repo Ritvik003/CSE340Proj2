@@ -12,7 +12,7 @@
 
 using namespace std;
 LexicalAnalyzer lexer = LexicalAnalyzer();
-
+bool syntaxError = false;
 
 struct ruleSet {
     string left;
@@ -53,7 +53,8 @@ void addToNonTerminals(string lexeme){
     print_nt.push_back(lexeme);
 }
 void syntax_error() {
-    cout << "syntax error";
+    syntaxError = true;
+    cout << "SYNTAX ERROR !!!\n";
 }
 void findTerminals_nonTerminals(){
         for (int i = 0; i < grammar.size(); i++) {
@@ -70,18 +71,18 @@ void findTerminals_nonTerminals(){
 }
 
 
-void parse_right(ruleSet *curr_rule) {
-    vector<string> out;
+bool parse_right(ruleSet *curr_rule) {
+
     while (lexer.peek(1).token_type != STAR) {
         Token test = lexer.GetToken();
         if (test.token_type != ID) {
-            syntax_error();
-            return;
+            return true;;
         }
         else{
             curr_rule->right.push_back(test.lexeme);
         }
     }
+    return false;
 }
 
 
@@ -89,9 +90,7 @@ void parse_right(ruleSet *curr_rule) {
 // read grammar
 void ReadGrammar()
 {
-    bool isid;
-    string maybe_add_id;
-    Token curr_token = lexer.GetToken();
+    Token curr_token = lexer.GetToken();    
     while(curr_token.token_type!=HASH&&curr_token.token_type!=END_OF_FILE){
         ruleSet *rule = new ruleSet; //check if this should be here
         if (curr_token.token_type == ID) {
@@ -102,7 +101,11 @@ void ReadGrammar()
             //if the grammar isn't a syntax error, then store the id in a variable.
             curr_token = lexer.GetToken();
             if (curr_token.token_type == ARROW) {
-                parse_right(rule);
+                //error prone
+                if(parse_right(rule)){
+                    syntax_error();
+                    return;
+                }
                 curr_token = lexer.GetToken();
                 if (curr_token.token_type == STAR) {
                     //this verifies the grammar is correct, so add it to the set
@@ -112,14 +115,12 @@ void ReadGrammar()
                 }
                 else {
                     delete rule;
-                    //cout<<"here1\n";
                     syntax_error();
                     return;
                 }
             }
             else {
                 delete rule;
-                //cout<<"here2\n";
                 syntax_error();
                 return;
             }
@@ -136,13 +137,13 @@ void ReadGrammar()
     //curr_token.Print();
     if (curr_token.token_type == END_OF_FILE) {
         syntax_error();
-        cout<<"\nhere3\n";
         return;
     }
     if(curr_token.token_type==HASH){
     curr_token = lexer.GetToken();
     if(curr_token.token_type!=END_OF_FILE){
         syntax_error();
+        return;
     }
     }
 
@@ -304,6 +305,7 @@ int main (int argc, char* argv[])
     ReadGrammar();  // Reads the input grammar from standard input
                     // and represent it internally in data structures
                     // ad described in project 2 presentation file
+    if(syntaxError==false){
 
     switch (task) {
         case 1: printTerminalsAndNoneTerminals();
@@ -324,6 +326,7 @@ int main (int argc, char* argv[])
         default:
             cout << "Error: unrecognized task number " << task << "\n";
             break;
+    }
     }
     return 0;
 }
