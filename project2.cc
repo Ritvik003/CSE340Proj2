@@ -9,6 +9,8 @@
 #include <vector>
 #include "lexer.h"
 #include <set>
+#include <unordered_set>
+#include <map>
 
 using namespace std;
 LexicalAnalyzer lexer = LexicalAnalyzer();
@@ -22,10 +24,20 @@ struct ruleSet {
     bool generating;
 };
 
+struct newruleSet {
+    string left;
+    vector<vector<string>> right;
+};
+
 vector<ruleSet> grammar;
 vector<string> print_t;
 vector<string> print_nt;
 std::set<string> setforsomething;
+vector<newruleSet> definition;
+
+map<string, set<string>> first_sets;
+
+
 bool inLeft (string lexeme,vector<ruleSet> grammarRule){
     for(int i=0;i<grammarRule.size();i++){
             if(lexeme.compare(grammarRule[i].left)==0){
@@ -53,7 +65,6 @@ bool parse_right(ruleSet *curr_rule) {
     }
     return false;
 }
-
 
 // make sure to add each ruleSet
 // read grammar
@@ -262,9 +273,142 @@ void RemoveUselessSymbols()
     }
 }
 
+void createNewRuleSet() {
+    unordered_set<string> lefts;
+    for (int i = 0; i < grammar.size(); i++) {
+        if (lefts.count(grammar[i].left) == 0) {
+            newruleSet nrs;
+            nrs.left = grammar[i].left;
+            nrs.right.push_back(grammar[i].right);
+            definition.push_back(nrs);
+            lefts.insert(grammar[i].left);
+        }
+        else {
+            for (int j = 0; j < definition.size(); j++) {
+                if (definition[j].left == grammar[i].left) {
+                    definition[j].right.push_back(grammar[i].right);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+bool terminates(newruleSet rule, int index) {
+    if (find(print_t.begin(), print_t.end(), rule.right[0]) != print_t.end()) {
+        first_sets[rule.left].insert(rule.right[index][0]);
+    }
+
+    return true;
+}
+
+bool isTerminal(string s) {
+     if (find(print_t.begin(), print_t.end(), s) == print_t.end()) {
+        return false;
+     }
+     return true;
+}
+
+bool isLast(string s, vector<string> vec, int index) {
+    if (vec[index] == vec[vec.size()-1]) {
+        return true;
+    }
+    return false;
+}
+
+bool hasEpsilon(string key) {
+    return first_sets.find(key)->second.find("#")!=first_sets.find(key)->second.end();
+}
+
+bool isSubset(set<string> set1, set<string> set2) {
+    return includes(set1.begin(), set1.end(), set2.begin(), set2.end());
+}
+
 // Task 3
 void CalculateFirstSets()
 {
+    map<string, int> id;
+    int counter = 0;
+    //create the new ruleset
+    createNewRuleSet();
+
+    //first initialize empty sets
+    for (auto n : definition) {
+        set<string> empty_set;
+        first_sets.insert({n.left, empty_set});
+        id.insert({n.left, counter});
+        counter++;
+    }
+
+    bool changed = true;
+    
+    cout << "gay";
+
+    //make a boolean array with size set to number of non terminals
+    bool haschanged[definition.size()];
+
+    for (int i = 0; i < definition.size(); i++) {
+        haschanged[i] = true;
+    }
+
+    while (changed) {
+        for (newruleSet rule : definition) {
+            for (auto ors : rule.right) {
+                //here we're considering epsilon
+                //
+                if (ors.size() == 0) {
+                        first_sets[rule.left].insert("#");
+                        continue;
+                    }
+                //this is the same as (for string s : ors)
+                for (int i = 0; i < ors.size(); i++) {
+                        if (isTerminal(ors[i])) {
+                            first_sets[rule.left].insert(ors[i]);
+                            break;
+                        }
+                    else {
+                        //add everything from the terminal minus epsilon to the first set
+                        set<string> old_set = first_sets[rule.left];
+                        set<string> newset = first_sets[ors[i]];
+                        haschanged[id[rule.left]] = isSubset(old_set, newset);
+                        newset.erase("#");
+                        set<string> tempfirst;
+                        set_union(newset.begin(), newset.end(), first_sets[rule.left].begin(), first_sets[rule.left].end(), inserter(tempfirst, tempfirst.begin()));
+                        first_sets[rule.left] = tempfirst;
+                        if (isLast(ors[i], ors, i)) {
+                            if (hasEpsilon(ors[i])) {
+                            first_sets[rule.left].insert("#");
+                            }
+                            else {
+                                break;
+                            }
+                        }
+                        else {
+                            if (!(hasEpsilon(ors[i]))) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        int i = 0;
+        bool all_false;
+        for (bool b : haschanged) {
+            if (b == true) all_false = false;
+        }
+        if (all_false) changed = false;
+    }
+
+    //print em out
+    for (auto const pair : first_sets) {
+        cout << "FIRST(" << pair.first << ") = {";
+
+        for (string const s : pair.second) {
+            cout << s << ", ";
+        }
+        cout << "\b\b}" << endl;
+    }
     cout << "3\n";
 }
 
