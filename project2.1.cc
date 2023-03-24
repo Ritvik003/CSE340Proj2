@@ -287,6 +287,11 @@ void CalculateFirstSets()
                                 break;
                             }
                         }
+                        else {
+                            if (!(hasEpsilon(ors[i]))) {
+                                break;
+                            }
+                        }
                     }
                 }
             }
