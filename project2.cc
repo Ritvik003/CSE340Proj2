@@ -14,6 +14,7 @@
 
 using namespace std;
 LexicalAnalyzer lexer = LexicalAnalyzer();
+bool syntaxError = false;
 
 struct ruleSet {
     string left;
@@ -36,9 +37,39 @@ bool inLeft (string lexeme,vector<ruleSet> grammarRule){
     }
     return false;
 }
+void addToTerminals(string lexeme){
+    for(int i =0; i<print_t.size();i++){
+        if(lexeme.compare(print_t[i])==0){
+            return;
+        }
+    }
+    print_t.push_back(lexeme);
+}
+void addToNonTerminals(string lexeme){
+    for(int i =0; i<print_nt.size();i++){
+        if(lexeme.compare(print_nt[i])==0){
+            return;
+        }
+    }
 
+    print_nt.push_back(lexeme);
+}
 void syntax_error() {
+    syntaxError = true;
     cout << "SYNTAX ERROR !!!\n";
+}
+void findTerminals_nonTerminals(){
+        for (int i = 0; i < grammar.size(); i++) {
+        addToNonTerminals(grammar[i].left);
+        for (int j = 0; j < grammar[i].right.size(); j++) {
+            if(inLeft(grammar[i].right[j],grammar)){
+                addToNonTerminals(grammar[i].right[j]);
+            }
+            else{
+                addToTerminals(grammar[i].right[j]);
+            }
+        }
+    }
 }
 
 
@@ -59,25 +90,31 @@ bool parse_right(ruleSet *curr_rule) {
 
 // make sure to add each ruleSet
 // read grammar
+//TASK 0
 void ReadGrammar()
 {
-    Token curr_token = lexer.GetToken();    
+    Token curr_token = lexer.GetToken();
     while(curr_token.token_type!=HASH&&curr_token.token_type!=END_OF_FILE){
         ruleSet *rule = new ruleSet; //check if this should be here
         if (curr_token.token_type == ID) {
-            rule->left = curr_token.lexeme;  //add non terminal to the data structure
+            //add non terminal to the data structure
+            rule->left = curr_token.lexeme;
             rule->generating=false;
             rule->reachable = false;
+            //if the grammar isn't a syntax error, then store the id in a variable.
             curr_token = lexer.GetToken();
             if (curr_token.token_type == ARROW) {
+                //error prone
                 if(parse_right(rule)){
                     syntax_error();
                     return;
                 }
                 curr_token = lexer.GetToken();
                 if (curr_token.token_type == STAR) {
-                    //this verifies the grammar is correct, so add it to the vector
+                    //this verifies the grammar is correct, so add it to the set
+                    //set.insert(maybe_add_id);
                     grammar.push_back(*rule);
+                    //curr_token = lexer.GetToken(); //go to the next line
                 }
                 else {
                     delete rule;
@@ -116,48 +153,17 @@ void ReadGrammar()
 }
 
 // Task 1
-void addToTerminals(string lexeme){
-    for(int i =0; i<print_t.size();i++){
-        if(lexeme.compare(print_t[i])==0){
-            return;
-        }
-    }
-    print_t.push_back(lexeme);
-}
-void addToNonTerminals(string lexeme){
-    for(int i =0; i<print_nt.size();i++){
-        if(lexeme.compare(print_nt[i])==0){
-            return;
-        }
-    }
-
-    print_nt.push_back(lexeme);
-}
-void findTerminals_nonTerminals(vector<ruleSet> grammarRule){
-        for (int i = 0; i < grammarRule.size(); i++) {
-        addToNonTerminals(grammarRule[i].left);
-        for (int j = 0; j < grammarRule[i].right.size(); j++) {
-            if(inLeft(grammarRule[i].right[j],grammarRule)){
-                addToNonTerminals(grammarRule[i].right[j]);
-            }
-            else{
-                addToTerminals(grammarRule[i].right[j]);
-            }
-        }
-    }
-}
-
 void printTerminalsAndNoneTerminals()
 {
     //ReadGrammar();
     // parses throght all lefts and rights to determine the terminals and non terminals
-    findTerminals_nonTerminals(grammar);
+    findTerminals_nonTerminals();
     for(int i =0; i<print_t.size();i++){
         cout<<print_t[i]<<" ";
     }
     for(int i =0; i<print_nt.size();i++){
         cout<<print_nt[i]<<" ";
-    } 
+    }
     cout<<endl;
     
 }
@@ -181,7 +187,7 @@ bool isGenerating(string lexeme){
         if(grammar[i].left.compare(lexeme)==0&&grammar[i].generating==true){
            return true;
         }
-    } 
+    }
     return false;
 }
 bool findGenerating(int num){
@@ -209,7 +215,7 @@ void getCondensedGrammar(){
                 grammar[i].generating = true;
                 num_generating++;
             }
-        }    
+        }
         for(int i =0; i<grammar.size();i++){
             if(grammar[i].reachable ==true){
                 bool status = true;
@@ -244,11 +250,11 @@ void getCondensedGrammar(){
     }
 }
 void RemoveUselessSymbols()
-{   
+{
     //cout<<"2"<<endl;
-    findTerminals_nonTerminals(grammar);
+    findTerminals_nonTerminals();
     getCondensedGrammar();
-    findTerminals_nonTerminals(condensedGrammar);
+    
     for(int i =0; i<condensedGrammar.size();i++){
         cout<<condensedGrammar[i].left<<" -> ";
         if(condensedGrammar[i].right.size()==0){
@@ -271,6 +277,7 @@ struct newruleSet {
 };
 vector<newruleSet> definition;
 map < string,set<string> > first_sets;
+
 void createNewRuleSet() {
     unordered_set<string> lefts;
     for (int i = 0; i < grammar.size(); i++) {
@@ -290,31 +297,19 @@ void createNewRuleSet() {
             }
         }
     }
-    /*
-    for (newruleSet nrs : definition) {
-        cout << nrs.left << ": ";
-
-        for (auto const i : nrs.right) {
-            for (auto const j : i) {
-                cout << j;
-            }
-            cout << " or ";
-        }
-        cout<<endl;
-    }
-    */
+    
 }
-
 
 bool isTerminal(string s) {
-     if (find(print_t.begin(), print_t.end(), s) == print_t.end()) {
-        return false;
+     for (int i =0;i<print_t.size();i++){
+        if(print_t[i].compare(s)==0){
+            return true;
+        }
      }
-     return true;
+     return false;
 }
-
 bool isLast(string s, vector<string> vec, int index) {
-    if (vec[index] == vec[vec.size()-1]) {
+    if (index== vec.size()-1) {
         return true;
     }
     return false;
@@ -325,76 +320,108 @@ bool hasEpsilon(string key) {
 }
 
 bool isSubset(set<string> set1, set<string> set2) {
-    return includes(set1.begin(), set1.end(), set2.begin(), set2.end());
-}
-void printFirstSets(){
-    for (auto const pair : first_sets) {
-        cout << "FIRST(" << pair.first << ") = {";
-
-        for (string const s : pair.second) {
-            cout << s << ", ";
+    for( string curr  : set2){
+        if(set1.count(curr)==0){
+            return false;
         }
-        cout << "}" << endl;
     }
-} 
+    return true;
+}
 
+set<string> unify(set<string> set1, set<string> set2) {
+    set<string> result = set1;
+    result.insert(set2.begin(), set2.end());
+    return result;
+}
 
+void printFirstSets(map<string,set<string> > currMap){
+    for(string curr_nt : print_nt){
+        if(currMap.find(curr_nt)!=currMap.end()){
+            cout<<"FIRST"<<"("<<curr_nt<<") = { ";
+            bool isFirst = true;
+            set<string> currSet= currMap[curr_nt];
+            if(currSet.find("#")!=currSet.end()){
+                cout<<"#";
+                isFirst = false;
+            }
+            for(string curr_t : print_t){
+                if(currSet.find(curr_t)!=currSet.end()){
+                    if(isFirst){
+                        isFirst=false;
+                        cout<<curr_t;
+                    }
+                    else{
+                    cout<<", "<<curr_t;
+                    }
+                }
+            }
+            cout<<" }";
 
-void CalculateFirstSets()
+        }
+        cout<<endl;
+    }
+}
+void getFirstSets()
 {
-    cout<< "\nOUR OUTPUT"<<endl;
-    map<string, int> id;
-    int counter = 0;
+
+    
+    findTerminals_nonTerminals();
     //create the new ruleset
     createNewRuleSet();
-
     //first initialize empty sets
-    for (auto n : definition) {
-        set<string> empty_set;
-        first_sets.insert({n.left, empty_set});
-        id.insert({n.left, counter});
-        counter++;
+    for (newruleSet n : definition) {
+        set<string> empty_set = {};
+        first_sets.insert(pair<string, set<string> >(n.left, empty_set));
+      
     }
     
     bool changed = true;
     
     //make a boolean array with size set to number of non terminals
-    bool haschanged[definition.size()];
-
-    for (int i = 0; i < definition.size(); i++) {
-        haschanged[i] = true;
-    }
-    int loopVariable =10;
-    while (loopVariable !=10) {
+    //put changed in here
+    while (changed) {
+        changed =false;
         for (newruleSet rule : definition) {
             for (auto ors : rule.right) {
                 //here we're considering epsilon
                 //
                 if (ors.size() == 0) {
+                    if (first_sets[rule.left].count("#") == 0) {
+                        changed = true;
                         first_sets[rule.left].insert("#");
-                        continue;
+                    }
+                    
+                    continue;
                     }
                 //this is the same as (for string s : ors)
                 for (int i = 0; i < ors.size(); i++) {
+                        //cout<<" current thingy : "<<ors[i]<<endl;
                         if (isTerminal(ors[i])) {
-                            first_sets[rule.left].insert(ors[i]);
+                          //  cout<<"TERMINAL ENCOUNTERED !!!"<<endl;
+                            if (first_sets[rule.left].count(ors[i]) == 0) {
+                                first_sets[rule.left].insert(ors[i]);
+                                changed = true;
+                            }
                             break;
                         }
+
                     else {
                         //add everything from the terminal minus epsilon to the first set
                         set<string> old_set = first_sets[rule.left];
                         set<string> newset = first_sets[ors[i]];
-                        haschanged[id[rule.left]] = isSubset(old_set, newset);
                         newset.erase("#");
-                        set<string> tempfirst;
-                        set_union(newset.begin(), newset.end(), first_sets[rule.left].begin(), first_sets[rule.left].end(), inserter(tempfirst, tempfirst.begin()));
-                        first_sets[rule.left] = tempfirst;
+                        if(!isSubset(old_set, newset)){
+                            changed = true;
+                            set<string> tempfirst;
+                            tempfirst = unify(newset, first_sets[rule.left]);
+                           // set_union(newset.begin(), newset.end(), first_sets[rule.left].begin(), first_sets[rule.left].end(), inserter(tempfirst, tempfirst.begin()));
+                            first_sets[rule.left] = tempfirst;
+                        }
+
                         if (isLast(ors[i], ors, i)) {
-                            if (hasEpsilon(ors[i])) {
-                            first_sets[rule.left].insert("#");
-                            }
-                            else {
-                                break;
+                            if (hasEpsilon(ors[i])&&first_sets[rule.left].count("#") == 0) {
+                                    first_sets[rule.left].insert("#");
+                                    changed = true;
                             }
                         }
                         else {
@@ -405,64 +432,92 @@ void CalculateFirstSets()
                     }
                 }
             }
+            
         }
-        int i = 0;
-        bool all_false;
-        for (bool b : haschanged) {
-            if (b == true) all_false = false;
-        }
-        if (all_false) changed = false;
-        loopVariable++;
+        
     }
     
     //print em out
-   printFirstSets();
-    //printFirstSets();
-    cout << "3\n";
+   //printFirstSets();
+   //cout<<"\nFINAL OUTPUT : \n";
+   
+   // cout << "3\n";
+   
+}
+void CalculateFirstSets(){
+    getFirstSets();
+    printFirstSets(first_sets);
 }
 
+
 // Task 4
+void printFollowSets(map<string,set<string> > currMap){
+    for(string curr_nt : print_nt){
+        if(currMap.find(curr_nt)!=currMap.end()){
+            cout<<"FOLLOW"<<"("<<curr_nt<<") = { ";
+            bool isFirst = true;
+            set<string> currSet= currMap[curr_nt];
+            if(currSet.find("$")!=currSet.end()){
+                cout<<"$";
+                isFirst = false;
+            }
+            for(string curr_t : print_t){
+                if(currSet.find(curr_t)!=currSet.end()){
+                    if(isFirst){
+                        isFirst=false;
+                        cout<<curr_t;
+                    }
+                    else{
+                    cout<<", "<<curr_t;
+                    }
+                }
+            }
+            cout<<" } \n ";
 
+        }
+    }
+    //cout<<endl;
+}
 map <string,set<string> > follow_sets;
-
 void getFollowSets(){
-    CalculateFirstSets();
-    for (auto n : definition) {
+    getFirstSets();
+    // correct : printFirstSets("FIRST",first_sets,"#");
+    for (newruleSet n : definition) {
         set<string> empty_set;
-        follow_sets.insert({n.left, empty_set});
+        follow_sets.insert(pair<string, set<string> >(n.left, empty_set));
     }
     //add $ to follow(S)
-   map <string,set<string> >::iterator FS_it = follow_sets.begin();
-   while(FS_it!=follow_sets.end()){
-    if(FS_it->first.compare(print_nt[0])==0){
-        FS_it->second.insert("$");
-    }
-    ++FS_it;
-   } 
-    //for each non-terminal get the basic composition of the follow set (only 1 pass required)
+    follow_sets[print_nt[0]].insert("$");
 
-    for(int i=0;i<definition.size();i++){
+    //for each non-terminal get the basic composition of the follow set (only 1 pass required)
+    cout<<endl;
+    for(newruleSet currSet: definition){
         //inside the ruleSet
-        for(int j=0;j<definition[i].right.size();j++){
+       // cout<<"here2\n";
+       // cout<<currSet.left<<" : ";
+        for(int j=0;j<currSet.right.size();j++){
             //inside the right-hand sides
-            for(int k=0;k<definition[i].right[j].size()-1;k++){
+            if(currSet.right[j].size()>0){
+            for(int k=0;k<currSet.right[j].size()-1;k++){
                 //inside the particular rule
-                string curr_nt =definition[i].right[j][k] ;
-                if(inLeft(curr_nt,condensedGrammar)){
-                        for(int t = k+1;t<definition[i].right[j].size();t++){
-                            string check_nt =definition[i].right[j][t]; 
-                            if(inLeft(definition[i].right[j][t],condensedGrammar)){
+                string curr_nt =currSet.right[j][k] ;
+                //cout<<curr_nt;
+                
+                if(inLeft(curr_nt,grammar)){
+                        for(int t = k+1;t<currSet.right[j].size();t++){
+                            string check_nt =currSet.right[j][t];
+                            if(inLeft(currSet.right[j][t],grammar)){
                                 //add first of t - epsilon in follow of k
                                 bool hasEpsilon = first_sets.find(check_nt)->second.find("#")!=first_sets.find(check_nt)->second.end();
                                 set<string> newset = first_sets[check_nt];
                                 newset.erase("#");
                                 set<string> tempfirst;
-                                set_union(newset.begin(), newset.end(), follow_sets[curr_nt].begin(), follow_sets[curr_nt].end(), inserter(tempfirst, tempfirst.begin()));
+                                //set_union(newset.begin(), newset.end(), follow_sets[curr_nt].begin(), follow_sets[curr_nt].end(), inserter(tempfirst, tempfirst.begin()));
+                                tempfirst = unify(newset,follow_sets[curr_nt]);
                                 follow_sets[curr_nt] = tempfirst;
                                 if(!hasEpsilon){
                                     break;
-                                } 
-
+                                }
                             }
                             else{
                                 //when terminal
@@ -471,73 +526,155 @@ void getFollowSets(){
                             }
                         }
                 }
+                
+                
             }
+            }
+            //cout<<" , ";
+            
         }
+        //cout<<endl;
     }
+    //printFollowSets(follow_sets);
+    
     bool changed = true;
     //while change is true : apply rules 2 and 3 for every rule
     while(changed == true){
         changed = false;
-        for(int i = 0; i<definition.size();i++){
+        for(newruleSet currSet : definition){
             //for each lhs
-            string left_nt = definition[i].left;
-            for (int j=0;j<definition[i].right.size();j++){
+            string left_nt = currSet.left;
+            for (int j=0;j<currSet.right.size();j++){
                 //for each rule
-                for(int k = definition[i].right[j].size()-1;k>=0;k++){
+                //cout<< left_nt <<" : ";
+                if(currSet.right[j].size()>0){
+                for(int k = currSet.right[j].size()-1;k>=0;k--){
                     //for each _t or _nt in the rule (reverse order)
-                    string curr_nt = definition[i].right[j][k];
-                     
+                    string curr_nt = currSet.right[j][k];
+                    //cout<<curr_nt<< "(";
                     // if the component is _nt
-                    if(inLeft(curr_nt,condensedGrammar)){
+                    if(inLeft(curr_nt,grammar)){
                     //combine the two follow sets and insert to follow(b) if follow(a) is not a subset of follow(b)
-                    if(!includes(follow_sets[curr_nt].begin(),follow_sets[curr_nt].end(),follow_sets[left_nt].begin(),follow_sets[left_nt].end())){
+                
+                    if(!isSubset(follow_sets[curr_nt],follow_sets[left_nt])){
                     set<string> newset = follow_sets[left_nt];
                     set<string> tempfollow;
-                    set_union(newset.begin(), newset.end(), follow_sets[curr_nt].begin(), follow_sets[curr_nt].end(), inserter(tempfollow, tempfollow.begin()));
+                    //set_union(newset.begin(), newset.end(), follow_sets[curr_nt].begin(), follow_sets[curr_nt].end(), inserter(tempfollow, tempfollow.begin()));
+                    tempfollow = unify(newset,follow_sets[curr_nt]);
                     follow_sets[curr_nt] = tempfollow;
                     changed = true;
                     }
                     //stop iterating if the first of _nt doesn't have epsilon
-                    bool hasEpsilon = first_sets.find(curr_nt)->second.find("#")!=first_sets.find(curr_nt)->second.end();
+                    bool hasEpsilon = first_sets[curr_nt].count("#")==1;
+                    //cout<<first_sets[curr_nt].count("#")<<") ";
                     if(!hasEpsilon){
                         break;
-                    }                        
+                    }
                     }
                     else{
                         //stop iterating through if the curr_nt is terminal
                         break;
-                    }
+                }
                     
                 }
+                //cout<<endl;
+            }
             }
         }
+       
     }
+    
+}
+bool intersectionIsNull(set<string> set1, set<string> set2){
+    for(string curr : set1 ){
+        if(set2.count(curr)==1){
+            return false;
+        }
+    }
+    return true;
 }
 
 void CalculateFollowSets()
 
 {
+  //  cout<<"OUR OUTPUT"<<endl;
     getFollowSets();
     
-    //format the output
-    map <string,set<string> >::iterator FS_it = follow_sets.begin();
-    while(FS_it!=follow_sets.end()){
-        cout<<"FOLLOW("<<FS_it->first<<") = {";
-        set<string> curr_fs = FS_it->second;
-        for(string curr : print_t){
-            if(curr_fs.find(curr)!=curr_fs.end()){
-                cout<<curr<<", ";
-            }
-        }
-        cout<<endl;
-        ++FS_it;
-    }
+    printFollowSets(follow_sets);
 }
 
 // Task 5
 void CheckIfGrammarHasPredictiveParser()
 {
-    cout << "5\n";
+    getFollowSets();
+    getFirstSets();
+    
+    for(newruleSet currRule :definition){
+        set<string> major_comp; //idList1
+        if(currRule.right.size()>=1){
+        int it = 0;
+        for(int i = 0;i<currRule.right.size()-1;i++){
+            vector<string> rule = currRule.right[i];
+            it++;
+            set<string> currStrings;
+            if(rule.size()==0){
+                currStrings.insert("#");
+                //cout<< "current STRING : "<<"#"<<", "<< currRule.left<<endl; 
+            }
+            else{
+            for(int j = 0;j<rule.size();j++){
+                string curr = rule[j];
+                //cout<< "current STRING : "<<curr<<", "<< currRule.left<<endl; 
+                if(inLeft(curr,grammar)){
+                     set<string> newset = first_sets[curr];
+                    if(j!=rule.size()-1&&newset.count("#")==1){
+                        newset.erase("#");
+                    }
+                    currStrings = unify(currStrings,newset);
+                    if(first_sets[curr].count("#")==0){
+                        break;
+                    }
+
+                }
+                else{
+                    currStrings.insert(curr);
+                    break;
+                }
+            }
+        }
+            if(!intersectionIsNull(currStrings,major_comp)){
+                //cout<<currRule.left<<endl;
+                //cout<<"iteration number : "<<it<<endl;
+                for(string t : currStrings){
+                    //cout<< t;
+                }
+                //cout<<endl;
+                for(string t : major_comp){
+                    //cout<< t;
+                }        
+                //cout<<endl;        
+                cout<<"NO";
+               
+                return;
+        
+            }
+            else{
+                major_comp = unify(major_comp,currStrings);
+            }
+        }
+    }
+    } 
+        for(int i = 0; i<print_nt.size();i++){
+            if(first_sets[print_nt[i]].count("#")==1){
+                if(!intersectionIsNull(first_sets[print_nt[i]],follow_sets[print_nt[i]])){
+                //cout<<print_nt[i]<<endl;
+                cout<<"N0"<<endl;
+                return;
+                }
+            }
+        }
+    
+    cout<<"YES"<<endl;
 }
     
 int main (int argc, char* argv[])
@@ -560,6 +697,7 @@ int main (int argc, char* argv[])
     ReadGrammar();  // Reads the input grammar from standard input
                     // and represent it internally in data structures
                     // ad described in project 2 presentation file
+    if(syntaxError==false){
 
     switch (task) {
         case 1: printTerminalsAndNoneTerminals();
@@ -581,6 +719,7 @@ int main (int argc, char* argv[])
             cout << "Error: unrecognized task number " << task << "\n";
             break;
     }
-    
+    }
     return 0;
+
 }
